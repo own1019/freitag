@@ -4,6 +4,9 @@ const request = require('request');
 const https = require('https');
 const schedule = require('node-schedule');
 
+const id = 'own1019@naver.com';
+const pw = 'qkrskrdnjs7!';
+
 	// let job = schedule.scheduleJob('15 * * * * *', function(){
 	// 	let mNow = new Date();
 	// 	console.log('excute time : ' + mNow);
@@ -81,7 +84,7 @@ const schedule = require('node-schedule');
 		try {
 			for(let i=0; color.length > i; i++) {
 				//if(color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black') && shape[i].includes('plain'))  {
-				if(color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black'))  { //민무늬 조건 제거
+				if(color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('grass'))  { //민무늬 조건 제거
 					await page.click('#accept-cookies-cta');
 					console.log('1');
 					await page.screenshot({ path: 'screenshot/2.png', fullPage:true });
@@ -100,6 +103,12 @@ const schedule = require('node-schedule');
 						document.querySelector("#edit-checkout").click();
 					  });
 					console.log('4');
+					await page.waitForSelector("#edit-name");
+					await page.waitFor(1000);
+					await page.evaluate(() => {
+						document.querySelector('input[name="name"]').value = id;
+						document.querySelector('input[name="pass"]').value = pw;
+					});
 					
 					console.log(color[i]);
 					console.log(img[i]);
