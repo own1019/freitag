@@ -4,18 +4,20 @@ const request = require('request');
 const https = require('https');
 const schedule = require('node-schedule');
 
-let job = schedule.scheduleJob('30 * * * * *', function(){
-	let mNow = new Date();
-	console.log(mNow);
+	let job = schedule.scheduleJob('15 * * * * *', function(){
+		let mNow = new Date();
+		console.log('excute time : ' + mNow);
+		doPuppeteer();
+	});
 
 	const doPuppeteer = async() => {
 		const browser = await puppeteer.launch({
 			//executablePath : "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
 			headless : true
 		});
-		
-		const page = await browser.newPage();
-		const userAgentList = new Array('Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.1 Mobile/15E148 Safari/604.1'
+
+		const userAgentList = new Array(
+		'Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.1 Mobile/15E148 Safari/604.1'
 		,'Mozilla/5.0 (iPhone; CPU iPhone OS 12_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1'
 		,'Mozilla/5.0 (iPhone; CPU iPhone OS 11_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.0 Mobile/15E148 Safari/604.1'
 		,'Mozilla/5.0 (iPhone; CPU iPhone OS 13_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1'
@@ -36,18 +38,20 @@ let job = schedule.scheduleJob('30 * * * * *', function(){
 		,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763'
 		,'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/21.0.1180.83 Safari/537.1'
 		,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36');
+		
 		function randomUserAgent(a) {
 			return a[Math.floor(Math.random() * a.length)];
 		}
-		console.log(randomUserAgent(userAgentList));
-		page.setUserAgent(randomUserAgent(userAgentList));
+
+		const page = await browser.newPage();
+		console.log('change before : ' + await page.evaluate('navigator.userAgent'));
+		await page.setUserAgent(randomUserAgent(userAgentList));
+		console.log('change after : ' +  await page.evaluate('navigator.userAgent'));
 
 		const download = (url, destination) => new Promise((resolve, reject) => {
 			const file = fs.createWriteStream(destination);
-
 			https.get(url, response => {
 				response.pipe(file);
-
 				file.on('finish', () => {
 				file.close(resolve(true));
 				});
@@ -59,13 +63,14 @@ let job = schedule.scheduleJob('30 * * * * *', function(){
 
 		//await page.goto("https://www.freitag.ch/ko/f41");
 		await page.goto("https://www.freitag.ch/ko/f41?f%5B0%5D=neo_product_style%3A1045"); //shape 민무늬 파라미터 적용
+
 		await page.screenshot({ path: 'screenshot/3.png', fullPage:true });
 
 		let color = await page.$$eval("#products-selector > ul > li", colors => colors.map(color => color.getAttribute("data-dimension17")));
 		//let shape = await page.$$eval("#products-selector > ul > li", shapes => shapes.map(shape => shape.getAttribute("data-dimension18")));
 		let img = await page.$$eval("#products-selector > ul > li > a > img", imgs => imgs.map(img => img.getAttribute('src')));
 		
-		console.log(color.length);
+		console.log('li.length : ' + color.length);
 
 		try {
 			for(let i=0; color.length > i; i++) {
@@ -73,9 +78,8 @@ let job = schedule.scheduleJob('30 * * * * *', function(){
 				if(color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black'))  { //민무늬 조건 제거
 					console.log(color[i]);
 					console.log(img[i]);
-					console.log(shape[i]);
-					//await download(img[i], './screenshot/freitag' + Math.random() + '.jpg');
-					await download(img[i], './screenshot/freitag' + img[i] + '.jpg');
+					//console.log(shape[i]);
+					await download(img[i], './screenshot/freitag' + Math.random() + '.jpg');
 				}
 			}
 		} catch (error) {
@@ -83,5 +87,5 @@ let job = schedule.scheduleJob('30 * * * * *', function(){
 		}
 		await page.close();
 	}
-	doPuppeteer();
-});
+
+
