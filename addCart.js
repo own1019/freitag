@@ -104,8 +104,8 @@ const schedule = require('node-schedule');
 					console.log('4');
 					await page.waitForNavigation();
 					await page.evaluate(() => {
-						const idd = 'id';
-						const pww = 'pw';
+						const idd = 'id';//////////////////////////////
+						const pww = 'pw';/////////////////////////////
 						document.querySelector('#edit-name').value = idd;
 						document.querySelector('#edit-pass').value = pww;
 					});
