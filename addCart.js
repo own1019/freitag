@@ -1,155 +1,194 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require('puppeteer-extra');
+const pluginStealth = require("puppeteer-extra-plugin-stealth");
 const fs = require('fs');
-const request = require('request');
 const https = require('https');
-const schedule = require('node-schedule');
+puppeteer.use(pluginStealth())
 
-
-
-	// let job = schedule.scheduleJob('15 * * * * *', function(){
-	// 	let mNow = new Date();
-	// 	console.log('excute time : ' + mNow);
-	// 	doPuppeteer();
-	// });
-
-	const doPuppeteer = async() => {
-		const browser = await puppeteer.launch({
-			//executablePath : "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-			headless : false
+const download = (url, destination) => new Promise((resolve, reject) => {
+	const file = fs.createWriteStream(destination);
+	https.get(url, response => {
+		response.pipe(file);
+		file.on('finish', () => {
+		file.close(resolve(true));
 		});
+	}).on('error', error => {
+		fs.unlink(destination);
+		reject(error.message);
+	});
+});
 
-		const userAgentList = new Array(
-		'Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.1 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 12_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 11_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.0 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 13_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 CK={} (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko'
-		,'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; WOW64; Trident/6.0)'
-		,'Mozilla/5.0 (Linux; Android 9; SAMSUNG SM-J737T) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/10.2 Chrome/71.0.3578.99 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 6.0; LG-K430 Build/MRA58K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.126 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 9; SM-A205U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.116 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 5.1; XT1033 Build/LPBS23.13-56-2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 8.1.0; LML212VL) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.93 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 6.0; LG-K430 Build/MRA58K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.158 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 9; 5032W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.136 Mobile Safari/537.36'
-		,'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 13_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.1 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 13_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.2 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36 OPR/48.0.2685.52'
-		,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36 OPR/67.0.3575.97'
-		,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763'
-		,'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/21.0.1180.83 Safari/537.1'
-		,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36'
-		,'Mozilla/5.0 (Linux; Android 7.0; SM-G892A Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/60.0.3112.107 Mobile Safari/537.36'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/69.0.3497.105 Mobile/15E148 Safari/605.1'
-		,'Mozilla/5.0 (iPhone; CPU iPhone OS 12_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/13.2b11866 Mobile/16A366 Safari/605.1.15'
-		,'Mozilla/5.0 (Linux; Android 5.0.2; LG-V410/V41020c Build/LRX22G) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/34.0.1847.118 Safari/537.36');
+module.exports = doPuppeteer = async() => {
+	const SimpleNodeLogger = require('simple-node-logger'),
+	opts = {
+		logFilePath: 'logs/' + 'bot2.log',
+		timestampFormat:'YYYY-MM-DD HH:mm:ss.SSS'
+	};
+	log = SimpleNodeLogger.createSimpleFileLogger( opts );
+	log.setLevel('info');
+	const debug = true;
+	let color = '';
+	let img = '';
+	let productId = '';
+
+	try {
+	const browser = await puppeteer.launch({
+		ignoreHTTPSErrors: true,
+		headless : false
 		
-		function randomUserAgent(a) {
-			return a[Math.floor(Math.random() * a.length)];
-		}
+	});
+
+	
 
 		const page = await browser.newPage();
-		console.log('change before : ' + await page.evaluate('navigator.userAgent'));
-		await page.setUserAgent(randomUserAgent(userAgentList));
-		console.log('change after : ' +  await page.evaluate('navigator.userAgent'));
 
-		const download = (url, destination) => new Promise((resolve, reject) => {
-			const file = fs.createWriteStream(destination);
-			https.get(url, response => {
-				response.pipe(file);
-				file.on('finish', () => {
-				file.close(resolve(true));
-				});
-			}).on('error', error => {
-				fs.unlink(destination);
-				reject(error.message);
-			});
-		});
-
-		//await page.goto("https://www.freitag.ch/ko/f41");
-		await page.goto("https://www.freitag.ch/ko/f41?f%5B0%5D=neo_product_style%3A1045"); //shape 민무늬 파라미터 적용
-		await page.screenshot({ path: 'screenshot/1.png', fullPage:true });
-
-		let color = await page.$$eval("#products-selector > ul > li", colors => colors.map(color => color.getAttribute("data-dimension17")));
-		//let shape = await page.$$eval("#products-selector > ul > li", shapes => shapes.map(shape => shape.getAttribute("data-dimension18")));
-		let img = await page.$$eval("#products-selector > ul > li > a > img", imgs => imgs.map(img => img.getAttribute('src')));
-		let productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
 		
-		console.log('li.length : ' + color.length);
 
-		try {
+		await page.setViewport({
+			width : 1920               // 페이지 너비
+		  , height : 1080                // 페이지 높이
+	  });
+
+		await page.goto('https://www.freitag.ch/ko/f41?f%5B0%5D=neo_product_style%3A1045');
+		
+
+		// #### LOG / DEBUG
+		if(debug == true) {
+			log.info('1. get color data');
+			color = await page.$$eval('#products-selector > ul > li', colors => colors.map(color => color.getAttribute('data-dimension17')));
+		}
+		//#### LOG / DEBUG END
+		
+		// #### LOG / DEBUG
+		if(debug == true) {
+			log.info('2. get image data');
+			img = await page.$$eval('#products-selector > ul > li > a > img', imgs => imgs.map(img => img.getAttribute('src')));
+		}
+		//#### LOG / DEBUG END
+
+		// #### LOG / DEBUG
+		if(debug == true) {
+			log.info('3. get product-id data');
+			productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
+		}
+		//#### LOG / DEBUG END
+
+		// #### LOG / DEBUG
+		if(debug == true) {
+			log.info('4. product buying process START');
 			for(let i=0; color.length > i; i++) {
-				//if(color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black') && shape[i].includes('plain'))  {
 				if(color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('blue'))  { //민무늬 조건 제거
-					await page.click('#accept-cookies-cta');
-					console.log('1');
-					await page.screenshot({ path: 'screenshot/2.png', fullPage:true });
-					await page.click('a[href="/ko/f41?productID='+productId[i]+'"]');
-					await page.waitFor(1000);
-					console.log('2');
-					await page.screenshot({ path: 'screenshot/3.png', fullPage:true });
-					await page.waitForSelector('button[data-product-id="'+productId[i]+'"]');
-					await page.waitFor(1000);
-					await page.click('button[data-product-id="'+productId[i]+'"]');
-					console.log('3');
-					await page.screenshot({ path: 'screenshot/4.png', fullPage:true });
-					await page.waitForSelector("#edit-checkout");
-					await page.waitFor(1000);
-					await page.evaluate(() => {
-						document.querySelector("#edit-checkout").click();
-					  });
-					console.log('4');
-					await page.waitForNavigation();
-					await page.evaluate(() => {
-						const idd = 'id';//////////////////////////////
-						const pww = 'pw';/////////////////////////////
-						document.querySelector('#edit-name').value = idd;
-						document.querySelector('#edit-pass').value = pww;
-					});
+					// #### LOG / DEBUG
+					if(debug == true) {
+					 	log.info('5. cookie window click');
+					 	await page.click('#accept-cookies-cta');
+					}
+					//#### LOG / DEBUG END
 
-					console.log('6');
-					await page.click('#edit-submit');
-					await page.waitForNavigation();
-					await page.evaluate(() => {
-						const idd = 'x';/////////////////////////////////////////
-						const pww = 'y';////////////////////////////////////////////
-						document.querySelector('#edit-customer-profile-contact-neo-customer-phone-und-0-value').value = 'z';///////////////////////////////////////
-					});
-					await page.click('#edit-continue');
-					
-					console.log('7');
-					await page.waitForNavigation();
-					await page.click('#edit-continue');
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('6. product click');
+						await page.screenshot({ path: 'screenshot/2.png', fullPage:true });
+						await page.click('a[href="/ko/f41?productID='+productId[i]+'"]');
+						await page.waitFor(600);
+					}
+					//#### LOG / DEBUG END
 
-					console.log('8');
-					await page.waitForNavigation();
-					await page.click('#edit-terms-conditions > div > div > label');
-					await page.click('#edit-continue');
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('7. cart click');
+						await page.screenshot({ path: 'screenshot/3.png', fullPage:true });
+						await page.waitForSelector('button[data-product-id="'+productId[i]+'"]');
+						await page.click('button[data-product-id="'+productId[i]+'"]');
+					}
+					//#### LOG / DEBUG END
 
-					console.log('9');
-					await page.waitFor(10000);
-					await page.click('#payment-method > div > div > div.chooser--lists > div > div.chooser--content.js-segment.js-segment__display.js-segment__initted.js-segment__is-on > div > div.payment-list.payment-list__column > ul > li:nth-child(2) > a > img');
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('8. checkout click');
+						await page.screenshot({ path: 'screenshot/4.png', fullPage:true });
+						await page.waitForSelector("#edit-checkout");
+						await page.evaluate(() => {
+							document.querySelector("#edit-checkout").click();
+						});
+					}
+					//#### LOG / DEBUG END
+
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('9. login');
+						await page.waitForNavigation();
+						await page.evaluate(() => {
+							document.querySelector('#edit-name').value = 'id';
+							document.querySelector('#edit-pass').value = 'pw!';
+						});
+						await page.click('#edit-submit');
+					}
+					//#### LOG / DEBUG END
+
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('10. input phoneNumber');
+						await page.waitForNavigation();
+						await page.evaluate(() => {
+							document.querySelector('#edit-customer-profile-contact-neo-customer-phone-und-0-value').value = '01000001111';///////////////////////////////////////
+						});
+						await page.click('#edit-continue');
+					}
+					//#### LOG / DEBUG END
+
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('11. next');
+						await page.waitForNavigation();
+						await page.click('#edit-continue');
+					}
+
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('12. term check and next');
+						await page.waitForNavigation();
+						await page.click('#edit-terms-conditions > div > div > label');
+						await page.click('#edit-continue');
+					}
+					//#### LOG / DEBUG END
+
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('13. payment-method click - mastercard');
+						await page.waitFor(10000);
+						await page.click('#payment-method > div > div > div.chooser--lists > div > div.chooser--content.js-segment.js-segment__display.js-segment__initted.js-segment__is-on > div > div.payment-list.payment-list__column > ul > li:nth-child(2) > a > img');
+					}
+					//#### LOG / DEBUG END
+
+
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('14. card info input');
+						await page.waitFor(3000);
+						await page.evaluate(() => {
+							document.querySelector('#cardNumber').value = '1111222233334444';
+							document.querySelector('#expiry').value = '5566';
+							document.querySelector('#cvv').value = '789';
+						});
+						await page.click('#payLabel');
+					}
+					//#### LOG / DEBUG END
 					
-					console.log('10');
-					await page.waitFor(3000);
-					await page.evaluate(() => {
-						document.querySelector('#cardNumber').value = '1111222233334444';
-						document.querySelector('#expiry').value = '5566';
-						document.querySelector('#cvv').value = '789';
-					});
-					await page.click('#payLabel');
-					
-					await download(img[i], './screenshot/freitag' + Math.random() + '.jpg');
+					// #### LOG / DEBUG
+					if(debug == true) {
+						log.info('15. product image download');
+						await download(img[i], './screenshot/freitag' + Math.random() + '.jpg');
+					}
+					//#### LOG / DEBUG END
+					//doPuppeteer();
 				}
 			}
-		} catch (error) {
-			console.log('에러입니다 : ' + error);
 		}
-		//await page.close();
+		//#### LOG / DEBUG END
+	} catch (error) {
+		console.log('에러입니다 : ' + error);
 	}
-	doPuppeteer();
+};
+doPuppeteer();
 
 
