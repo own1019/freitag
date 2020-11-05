@@ -125,8 +125,5 @@ module.exports = doPuppeteer = async () => {
 	} catch (error) {
 		console.log(error);
 		console.log('-----------error close----------');
-	} finally {
-	 	await browser.close();
-	 	console.log('-----------finally close----------');
 	}
 };
