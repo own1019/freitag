@@ -8,7 +8,7 @@ const cookies = require('./public/data/cookies.js');
 const properties = require('./public/data/properties.json');
 
 module.exports = doPuppeteer = async () => {
-		const urls = ['https://www.freitag.ch/en/f41?f%5B0%5D=neo_product_style%3A1045', 'https://www.freitag.ch/en/f11?f%5B0%5D=neo_product_style%3A1045', 'https://www.freitag.ch/en/f05']
+		const urls = ['https://www.freitag.ch/en/f41', 'https://www.freitag.ch/en/f11', 'https://www.freitag.ch/en/f05']
 		const urlKinds = ['hawaii', 'lassie', 'blair']
 		for (let j = 0; j < urls.length; j++) {	
 			const browser = await puppeteer.launch({ 
@@ -48,6 +48,8 @@ module.exports = doPuppeteer = async () => {
 				// } else {
 				// 	console.log('모두보기');
 				// }
+
+				console.log('urlkinds : ' + urlKinds[j] + '/ li.length : ' + color.length);
 
 				for(let i = 0; color.length > i; i++) {
 					if (shape[i].includes('plain')) {
