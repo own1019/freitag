@@ -1,12 +1,11 @@
+const { telegramBot } = require('./telegramBot');
 const puppeteer = require('puppeteer-extra');
 const pluginStealth = require("puppeteer-extra-plugin-stealth");
 const randomUserAgent = require('./randomUserAgent.js');
-const { telegramBot } = require('./telegramBot');
 const { download } = require("./download");
 puppeteer.use(pluginStealth());
-const properties = require('./public/data/properties.json');
 const cookies = require('./public/data/cookies.js');
-const TelegramBot = require('node-telegram-bot-api');
+const properties = require('./public/data/properties.json');
 
 module.exports = doPuppeteer = async () => {
 		const browser = await puppeteer.launch({ 
@@ -36,7 +35,7 @@ module.exports = doPuppeteer = async () => {
 			const color = await page.$$eval('#products-selector > ul > li', colors => colors.map(color => color.getAttribute('data-dimension17'))); //color data extraction
 			const img = await page.$$eval('#products-selector > ul > li > a > img', imgs => imgs.map(img => img.getAttribute('src'))); //image url extraction
 			//const productShowHide = await page.$eval('#products-load-all', el => el.getAttribute('style'));
-			const productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
+			//const productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
 
 			//console.log(productShowHide);
 			// if(productShowHide == null) {
@@ -47,10 +46,12 @@ module.exports = doPuppeteer = async () => {
 
 			console.log('li.length : ' + color.length);
 
+			
+
 			for(let i = 0; color.length > i; i++) {
-				if (color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('green')) { //민무늬 조건 shape[i].includes('plain')
-					telegramBot(img[i]);
+				if (color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black')) { //민무늬 조건 shape[i].includes('plain')
 					await download(img[i], './public/images/screenshot/freitag' + Math.random() + '.jpg');
+					await telegramBot(img[i]);
 
 					// //이부분을 숨겨진 물품 상세를 바로 보이게 변경해서 빠르게 클릭하기
 					// await page.click('a[href="/en/f41?productID='+productId[i]+'"]');
