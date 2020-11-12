@@ -1,4 +1,3 @@
-const { telegramBot } = require('./telegramBot');
 const puppeteer = require('puppeteer-extra');
 const pluginStealth = require("puppeteer-extra-plugin-stealth");
 const randomUserAgent = require('./randomUserAgent.js');
@@ -6,25 +5,45 @@ const { download } = require("./download");
 puppeteer.use(pluginStealth());
 const cookies = require('./public/data/cookies.js');
 const properties = require('./public/data/properties.json');
+const telegramBot = require('./telegramBot.js');
+const exec = require('child_process').exec;
 
 module.exports = doPuppeteer = async () => {
 		const urls = ['https://www.freitag.ch/en/f41', 'https://www.freitag.ch/en/f11', 'https://www.freitag.ch/en/f05']
 		const urlKinds = ['hawaii', 'lassie', 'blair']
-		for (let j = 0; j < urls.length; j++) {	
+		for (let j = 0; j < urls.length; j++) {
+			const url = urls[j];
 			const browser = await puppeteer.launch({ 
-				headless: false,
-				args: ['--proxy-server=socks5://127.0.0.1:9050'] 
+				headless: true,
+				args: ['--proxy-server=socks5://127.0.0.1:9050'],
+				ignoreHTTPSErrors : true
 			});
 
 			try {
 				const page = await browser.newPage();
 
+				page.on('response', response => {
+					if (response.request().url() === url) {
+						if (response.status() > 399) {
+							console.log('response.status', response.status(), response.request().url());
+							exec('(echo authenticate \'""\'; echo signal newnym; echo quit) | nc localhost 9051', (error, stdout, stderr) => {
+								if(stdout.match(/250/g).length === 3) {
+									console.log('Success: The IP Address has been changed.');
+								} else {
+									console.log('Error: A problem occured while attempting to change the IP Address.');
+								}
+							});
+						} else {
+							console.log('Success: The Page Response was successful (no need to change the IP Address).');
+						}
+					}
+				});
+
 				await page.setRequestInterception(true);
 				await page.on('request', (req) => {
-					if(req.resourceType() === 'image' || req.resourceType() === 'media'){
+					if(req.resourceType() === 'image' || req.resourceType() === 'media' || req.resourceType() === 'font') {
 						req.abort();
-					}
-					else {
+					} else {
 						req.continue();
 					}
 				});
@@ -32,16 +51,14 @@ module.exports = doPuppeteer = async () => {
 				await page.setUserAgent(randomUserAgent()); //random user agent setting
 				await page.setCookie(...cookies.cookies); //freitag cookie setting
 				await page.setViewport({ width: 1366, height: 1000 }); //full size screen open
-				
-				const url = urls[j];
 				await page.goto(`${url}`, {waitUntil: "networkidle2"});
 				
 				const color = await page.$$eval('#products-selector > ul > li', colors => colors.map(color => color.getAttribute('data-dimension17'))); //color data extraction
 				const img = await page.$$eval('#products-selector > ul > li > a > img', imgs => imgs.map(img => img.getAttribute('src'))); //image url extraction
 				const shape = await page.$$eval('#products-selector > ul > li', shapes => shapes.map(shape => shape.getAttribute('data-dimension18'))); //image url extraction
-				//const productShowHide = await page.$eval('#products-load-all', el => el.getAttribute('style'));
 				//const productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
-
+				
+				//const productShowHide = await page.$eval('#products-load-all', el => el.getAttribute('style'));
 				//console.log(productShowHide);
 				// if(productShowHide == null) {
 				// 	console.log('모두안보기');
@@ -49,14 +66,14 @@ module.exports = doPuppeteer = async () => {
 				// 	console.log('모두보기');
 				// }
 
-				console.log('urlkinds : ' + urlKinds[j] + '/ li.length : ' + color.length);
+				console.log(urlKinds[j] + ' / ' + color.length);
 
 				for(let i = 0; color.length > i; i++) {
 					if (shape[i].includes('plain')) {
-						if (color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black')) { //민무늬 조건 shape[i].includes('plain')
+						if (color[i].includes('industrial') || color[i].includes('pink') || color[i].includes('olive') || color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black')) {
 							await download(img[i], './public/images/screenshot/freitag' + Math.random() + '.jpg');
-							await telegramBot(img[i]);
-							
+							await telegramBot(img[i])
+													
 							// //이부분을 숨겨진 물품 상세를 바로 보이게 변경해서 빠르게 클릭하기
 							// await page.click('a[href="/en/f41?productID='+productId[i]+'"]');
 							// console.log('물품 클릭');
@@ -109,10 +126,13 @@ module.exports = doPuppeteer = async () => {
 								// }, properties[0].cardNumber,  properties[0].expiry, properties[0].cvv);
 							// await page.click('#payLabel');
 							// console.log('카드정보 입력 후 결제 클릭');
+
+							// console.log('결제완료!');
 							// //await page.waitFor(100000);
 						}
 					}
 				}
+				await page.close();
 			} catch (error) {
 				console.log(error);
 				console.log('-----------error----------');
