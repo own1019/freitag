@@ -7,6 +7,7 @@ const cookies = require('./public/data/cookies.js');
 const properties = require('./public/data/properties.json');
 const telegramBot = require('./telegramBot.js');
 const exec = require('child_process').exec;
+const duplicateFakeCheck = require('./duplicateFakeCheck.js');
 
 module.exports = doPuppeteer = async () => {
 		const urls = ['https://www.freitag.ch/en/f41', 'https://www.freitag.ch/en/f11', 'https://www.freitag.ch/en/f05']
@@ -50,13 +51,13 @@ module.exports = doPuppeteer = async () => {
 
 				await page.setUserAgent(randomUserAgent()); //random user agent setting
 				await page.setCookie(...cookies.cookies); //freitag cookie setting
-				await page.setViewport({ width: 1366, height: 1000 }); //full size screen open
+				await page.setViewport({ width: 1366, height: 1000 });
 				await page.goto(`${url}`, {waitUntil: "networkidle2"});
 				
 				const color = await page.$$eval('#products-selector > ul > li', colors => colors.map(color => color.getAttribute('data-dimension17'))); //color data extraction
-				const img = await page.$$eval('#products-selector > ul > li > a > img', imgs => imgs.map(img => img.getAttribute('src'))); //image url extraction
 				const shape = await page.$$eval('#products-selector > ul > li', shapes => shapes.map(shape => shape.getAttribute('data-dimension18'))); //image url extraction
-				//const productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
+				const productId = await page.$$eval("#products-selector > ul > li", productIds => productIds.map(productId => productId.getAttribute("data-product-id")));
+				const img = await page.$$eval('#products-selector > ul > li > a > img', imgs => imgs.map(img => img.getAttribute('src'))); //image url extraction
 				
 				//const productShowHide = await page.$eval('#products-load-all', el => el.getAttribute('style'));
 				//console.log(productShowHide);
@@ -69,11 +70,13 @@ module.exports = doPuppeteer = async () => {
 				console.log(urlKinds[j] + ' / ' + color.length);
 
 				for(let i = 0; color.length > i; i++) {
-					if (shape[i].includes('plain')) {
+					if(shape[i].includes('plain')) {
 						if (color[i].includes('industrial') || color[i].includes('pink') || color[i].includes('olive') || color[i].includes('1053') || color[i].includes('583') || color[i].includes('613') || color[i].includes('565') || color[i].includes('580') || color[i].includes('black')) {
-							await download(img[i], './public/images/screenshot/freitag' + Math.random() + '.jpg');
-							await telegramBot(img[i])
-													
+							if(await duplicateFakeCheck(productId[i])) { //뻥스탁일 경우 false, 아닐경우 true 리턴
+								await download(img[i], './public/images/screenshot/freitag' + Math.random() + '.jpg');
+								await telegramBot(img[i]);
+							}
+							
 							// //이부분을 숨겨진 물품 상세를 바로 보이게 변경해서 빠르게 클릭하기
 							// await page.click('a[href="/en/f41?productID='+productId[i]+'"]');
 							// console.log('물품 클릭');
